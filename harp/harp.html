@@ -24,6 +24,15 @@
       </div>
     </a>
 
+    <a class="game-card" href="games/guess-symbol.html">
+      <div class="game-card__icon">🔍</div>
+      <div class="game-card__body">
+        <h2>Find the Symbol</h2>
+        <p>Read the description and pick the matching symbol from four images.</p>
+        <div class="game-card__meta" id="meta-guess-symbol"></div>
+      </div>
+    </a>
+
     <!-- Add more game cards here as new games are created -->
 
   </main>
@@ -41,6 +50,14 @@
         badge.className = 'best-badge';
         badge.textContent = 'Best: ' + best + ' correct';
         metaEl.appendChild(badge);
+      }
+      const best2 = localStorage.getItem('harp_guess_symbol_best');
+      if (best2 !== null) {
+        const metaEl2 = document.getElementById('meta-guess-symbol');
+        const badge2 = document.createElement('span');
+        badge2.className = 'best-badge';
+        badge2.textContent = 'Best: ' + best2 + ' correct';
+        metaEl2.appendChild(badge2);
       }
     })();
   </script>
