@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess Signs &amp; Symbols — Harp Learning</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="quiz-page">
+
+  <!-- ── Quiz header (hidden during results) ──────────────────── -->
+  <div id="quiz-header">
+    <header class="quiz-topbar">
+      <a href="../harp.html" class="quiz-topbar__back">← Back</a>
+      <span class="quiz-topbar__title">Guess Signs &amp; Symbols</span>
+      <span class="quiz-topbar__progress" id="progress"></span>
+      <button class="btn-mute" id="btn-mute" onclick="toggleMute()" title="Toggle sound">🔇</button>
+    </header>
+    <div class="quiz-scorebar">
+      <span class="score-correct">✓ <span id="score-correct">0</span> correct</span>
+      <span class="score-wrong">✗ <span id="score-wrong">0</span> wrong</span>
+    </div>
+  </div>
+
+  <!-- ── Quiz main ─────────────────────────────────────────────── -->
+  <main class="quiz-main" id="quiz-area">
+    <div class="quiz-progress-bar">
+      <div class="quiz-progress-bar__fill" id="progress-bar"></div>
+    </div>
+
+    <div class="symbol-card">
+      <div id="symbol-img-container"></div>
+      <div class="symbol-meaning" id="symbol-meaning"></div>
+    </div>
+
+    <p class="question-prompt">What is this symbol called?</p>
+
+    <div class="options-grid" id="options-grid"></div>
+
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">Next →</button>
+  </main>
+
+  <!-- ── Confetti canvas (sits above everything, pointer-events:none) ── -->
+  <canvas id="confetti-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:200;display:none;"></canvas>
+
+  <!-- ── Results screen ────────────────────────────────────────── -->
+  <div class="results-screen" id="results-screen">
+    <div class="results-emoji" id="results-emoji">🎉</div>
+    <h2 id="results-title">Quiz Complete!</h2>
+    <div class="results-stats">
+      <div class="stat-box correct">
+        <div class="stat-value" id="result-correct">0</div>
+        <div class="stat-label">Correct</div>
+      </div>
+      <div class="stat-box wrong">
+        <div class="stat-value" id="result-wrong">0</div>
+        <div class="stat-label">Wrong</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="result-pct">0%</div>
+        <div class="stat-label">Score</div>
+      </div>
+    </div>
+    <p class="results-best" id="results-best"></p>
+    <button class="btn-replay" onclick="startQuiz()">Play Again</button>
+    <a href="../harp.html" class="btn-home">← All Games</a>
+  </div>
+
+  <!-- Data file must be loaded before the game script -->
+  <script src="../data/symbols.js"></script>
+  <script>
+    'use strict';
+
+    /* ── Constants ───────────────────────────────────────────────── */
+    const STORAGE_KEY = 'harp_guess_signs_best';
+
+    /* ── State ───────────────────────────────────────────────────── */
+    const state = {
+      questions: [],
+      current:   0,
+      correct:   0,
+      wrong:     0,
+      answered:  false
+    };
+
+    /* ── Utilities ───────────────────────────────────────────────── */
+
+    /** Fisher-Yates shuffle — returns a new array */
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    /**
+     * Build one question per symbol.
+     * Each question has the correct symbol + 3 random distractors, shuffled.
+     */
+    function buildQuestions(data) {
+      return shuffle(data).map(symbol => {
+        const others     = data.filter(s => s !== symbol);
+        const distractors = shuffle(others).slice(0, 3);
+        const options    = shuffle([symbol, ...distractors]);
+        return { symbol, options, correctIndex: options.indexOf(symbol) };
+      });
+    }
+
+    const el = id => document.getElementById(id);
+
+    /* ── Sound effects (Web Audio API — no files needed) ─────────── */
+
+    let isMuted = true;   // starts muted
+    let _audioCtx = null;
+
+    function audioCtx() {
+      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return _audioCtx;
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      el('btn-mute').textContent = isMuted ? '🔇' : '🔊';
+    }
+
+    function playCorrect() {
+      if (isMuted) return;
+      try {
+        const ctx    = audioCtx();
+        const now    = ctx.currentTime;
+        const bufLen = ctx.sampleRate * 0.12;
+        const buffer = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+        const data   = buffer.getChannelData(0);
+        for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.55, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        const hpf = ctx.createBiquadFilter();
+        hpf.type = 'highpass';
+        hpf.frequency.value = 1800;
+        source.connect(hpf);
+        hpf.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(now);
+        source.stop(now + 0.13);
+      } catch (e) {}
+    }
+
+    function playWrong() {
+      if (isMuted) return;
+      try {
+        const ctx  = audioCtx();
+        const now  = ctx.currentTime;
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } catch (e) {}
+    }
+
+    function playFinish() {
+      if (isMuted) return;
+      try {
+        const ctx  = audioCtx();
+        const now  = ctx.currentTime;
+        // cheerful ascending arpeggio: C5 E5 G5 C6
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, i) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const t    = now + i * 0.13;
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.4, t + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.6);
+        });
+      } catch (e) {}
+    }
+
+    /* ── Confetti ────────────────────────────────────────────────── */
+
+    let _confettiRaf = null;
+
+    function launchConfetti() {
+      const canvas = el('confetti-canvas');
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvas.style.display = 'block';
+      const ctx    = canvas.getContext('2d');
+      const colors = ['#f94144','#f3722c','#f9c74f','#90be6d','#43aa8b','#577590','#a78bfa','#f472b6'];
+      const pieces = Array.from({ length: 120 }, () => ({
+        x:    Math.random() * canvas.width,
+        y:    Math.random() * -canvas.height,
+        r:    Math.random() * 6 + 4,
+        d:    Math.random() * 80 + 20,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        tilt:  Math.random() * 10 - 10,
+        tiltAngle: 0,
+        tiltSpeed: Math.random() * 0.1 + 0.05
+      }));
+      let angle = 0;
+      let elapsed = 0;
+      const DURATION = 3500; // ms
+      let last = null;
+
+      function draw(ts) {
+        if (!last) last = ts;
+        elapsed += ts - last;
+        last = ts;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        angle += 0.01;
+        pieces.forEach(p => {
+          p.tiltAngle += p.tiltSpeed;
+          p.y += (Math.cos(angle + p.d) + 2.5) * 1.5;
+          p.x += Math.sin(angle) * 1.2;
+          p.tilt = Math.sin(p.tiltAngle) * 15;
+          ctx.beginPath();
+          ctx.lineWidth = p.r;
+          ctx.strokeStyle = p.color;
+          ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+          ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+          ctx.stroke();
+        });
+        if (elapsed < DURATION) {
+          _confettiRaf = requestAnimationFrame(draw);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      if (_confettiRaf) cancelAnimationFrame(_confettiRaf);
+      _confettiRaf = requestAnimationFrame(draw);
+    }
+
+    /* ── Quiz initialisation ─────────────────────────────────────── */
+
+    function startQuiz() {
+      if (typeof SYMBOLS_DATA === 'undefined' || !Array.isArray(SYMBOLS_DATA)) {
+        showError('Could not load symbols data. Make sure <code>data/symbols.js</code> is present.');
+        return;
+      }
+      if (SYMBOLS_DATA.length < 4) {
+        showError('At least 4 symbols are needed to generate quiz questions. Please add more entries to <code>data/symbols.js</code>.');
+        return;
+      }
+
+      Object.assign(state, {
+        questions: buildQuestions(SYMBOLS_DATA),
+        current:   0,
+        correct:   0,
+        wrong:     0,
+        answered:  false
+      });
+
+      el('results-screen').classList.remove('visible');
+      el('quiz-header').style.display = '';
+      el('quiz-area').style.display   = 'flex';
+      updateScoreBar();
+      renderQuestion();
+    }
+
+    /* ── Rendering ───────────────────────────────────────────────── */
+
+    function renderQuestion() {
+      state.answered = false;
+
+      const q     = state.questions[state.current];
+      const total = state.questions.length;
+
+      // Counter & progress bar
+      el('progress').textContent     = `${state.current + 1} / ${total}`;
+      el('progress-bar').style.width = `${(state.current / total) * 100}%`;
+
+      // Symbol image
+      const container = el('symbol-img-container');
+      container.innerHTML = '';
+
+      const img = document.createElement('img');
+      const ext = q.symbol.ext || 'png';
+      img.alt = '';
+      img.src = `../images/symbols/${q.symbol.sign}.${ext}`;
+      img.onerror = () => {
+        container.innerHTML = '';
+        const ph = document.createElement('div');
+        ph.className   = 'symbol-placeholder';
+        ph.textContent = `${q.symbol.sign}.${ext}\n(image not found)`;
+        container.appendChild(ph);
+      };
+      container.appendChild(img);
+
+      // Hide meaning until answered
+      const meaningEl = el('symbol-meaning');
+      meaningEl.textContent = '';
+      meaningEl.classList.remove('visible');
+
+      // Build option buttons
+      const grid = el('options-grid');
+      grid.innerHTML = '';
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className   = 'option-btn';
+        btn.textContent = opt.name;
+        btn.addEventListener('click', () => handleAnswer(i));
+        grid.appendChild(btn);
+      });
+
+      el('btn-next').classList.remove('visible');
+    }
+
+    /* ── Answer handling ─────────────────────────────────────────── */
+
+    function handleAnswer(selectedIndex) {
+      if (state.answered) return;
+      state.answered = true;
+
+      const q         = state.questions[state.current];
+      const isCorrect = selectedIndex === q.correctIndex;
+
+      if (isCorrect) state.correct++;
+      else           state.wrong++;
+
+      // Highlight buttons
+      el('options-grid').querySelectorAll('.option-btn').forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === q.correctIndex) {
+          btn.classList.add('correct');
+        } else if (i === selectedIndex && !isCorrect) {
+          btn.classList.add('wrong');
+        }
+      });
+
+      // Reveal full meaning
+      const meaningEl = el('symbol-meaning');
+      meaningEl.textContent = q.symbol.meaning;
+      meaningEl.classList.add('visible');
+
+      if (isCorrect) playCorrect();
+      else           playWrong();
+
+      updateScoreBar();
+      el('btn-next').classList.add('visible');
+    }
+
+    /* ── Navigation ──────────────────────────────────────────────── */
+
+    function nextQuestion() {
+      state.current++;
+      if (state.current >= state.questions.length) {
+        showResults();
+      } else {
+        renderQuestion();
+      }
+    }
+
+    /* ── Score bar ───────────────────────────────────────────────── */
+
+    function updateScoreBar() {
+      el('score-correct').textContent = state.correct;
+      el('score-wrong').textContent   = state.wrong;
+    }
+
+    /* ── Results ─────────────────────────────────────────────────── */
+
+    function showResults() {
+      const total = state.questions.length;
+      const pct   = Math.round((state.correct / total) * 100);
+
+      el('quiz-header').style.display = 'none';
+      el('quiz-area').style.display   = 'none';
+      el('results-screen').classList.add('visible');
+
+      el('result-correct').textContent = state.correct;
+      el('result-wrong').textContent   = state.wrong;
+      el('result-pct').textContent     = `${pct}%`;
+
+      const emoji = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 50 ? '💪' : '😔';
+      el('results-emoji').textContent = emoji;
+
+      const titleMap = [[100, 'Perfect Score!'], [80, 'Great Work!'], [60, 'Getting There!'], [40, 'Keep Practising!']];
+      const match = titleMap.find(([threshold]) => pct >= threshold);
+      el('results-title').textContent = match ? match[1] : 'Keep Going!';
+
+      // Persist best score to localStorage
+      const prev = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (state.correct > prev) {
+        localStorage.setItem(STORAGE_KEY, String(state.correct));
+      }
+      const best = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+      el('results-best').textContent = `Best: ${best} / ${total} correct`;
+
+      // Celebrate!
+      launchConfetti();
+      playFinish();
+    }
+
+    /* ── Error display ───────────────────────────────────────────── */
+
+    function showError(msg) {
+      el('quiz-header').style.display = 'none';
+      const area = el('quiz-area');
+      area.style.display = 'flex';
+      area.innerHTML = `<div class="error-banner"><strong>Error:</strong> ${msg}</div>`;
+    }
+
+    /* ── Boot ────────────────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', startQuiz);
+  </script>
+</body>
+</html>

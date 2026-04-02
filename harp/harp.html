@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harp Learning</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="harp-logo">🎵</div>
+    <h1>Harp Learning</h1>
+    <p class="subtitle">Pick a game and start practising</p>
+  </header>
+
+  <main class="games-grid">
+
+    <a class="game-card" href="games/guess-signs.html">
+      <div class="game-card__icon">🎼</div>
+      <div class="game-card__body">
+        <h2>Guess Signs &amp; Symbols</h2>
+        <p>Identify harp notation symbols and learn what each one means.</p>
+        <div class="game-card__meta" id="meta-guess-signs"></div>
+      </div>
+    </a>
+
+    <!-- Add more game cards here as new games are created -->
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Harp Learning &mdash; for harp students</p>
+  </footer>
+
+  <script>
+    (function () {
+      const best = localStorage.getItem('harp_guess_signs_best');
+      if (best !== null) {
+        const metaEl = document.getElementById('meta-guess-signs');
+        const badge = document.createElement('span');
+        badge.className = 'best-badge';
+        badge.textContent = 'Best: ' + best + ' correct';
+        metaEl.appendChild(badge);
+      }
+    })();
+  </script>
+</body>
+</html>

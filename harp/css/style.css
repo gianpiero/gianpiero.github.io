@@ -1,0 +1,486 @@
+/* ================================================================
+   Harp Learning — Shared Stylesheet
+   ================================================================ */
+
+/* ── Reset & base ──────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, sans-serif;
+  background: #f5f5f0;
+  color: #1a1a1a;
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ================================================================
+   Index page
+   ================================================================ */
+
+.site-header {
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+}
+
+.harp-logo {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+
+.site-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e6b;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin-top: 0.4rem;
+  color: #777;
+  font-size: 1rem;
+}
+
+/* Games grid */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0.5rem 1.5rem 4rem;
+}
+
+/* Game card */
+.game-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 14px;
+  padding: 1.75rem;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  transition: box-shadow 0.2s, transform 0.18s;
+}
+
+.game-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+  transform: translateY(-2px);
+}
+
+.game-card__icon {
+  font-size: 2.2rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 0.15rem;
+}
+
+.game-card__body h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2c3e6b;
+}
+
+.game-card__body p {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.55;
+}
+
+.game-card__meta {
+  margin-top: 0.6rem;
+}
+
+.best-badge {
+  display: inline-block;
+  background: #eef2ff;
+  color: #2c3e6b;
+  border-radius: 20px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+}
+
+/* Site footer */
+.site-footer {
+  text-align: center;
+  padding: 1.25rem;
+  color: #aaa;
+  font-size: 0.8rem;
+  border-top: 1px solid #e8e8e8;
+}
+
+/* ================================================================
+   Quiz pages — shared layout
+   ================================================================ */
+
+.quiz-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f0;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────── */
+.quiz-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.25rem;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.quiz-topbar__back {
+  text-decoration: none;
+  color: #2c3e6b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.quiz-topbar__back:hover { text-decoration: underline; }
+
+.quiz-topbar__title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.5rem;
+}
+
+.quiz-topbar__progress {
+  font-size: 0.875rem;
+  color: #555;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 52px;
+  text-align: right;
+}
+
+/* ── Score bar ──────────────────────────────────────────────────── */
+.quiz-scorebar {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 0.875rem;
+}
+
+.score-correct { color: #1e7e45; font-weight: 600; }
+.score-wrong   { color: #b32a1e; font-weight: 600; }
+
+/* ── Quiz main content ──────────────────────────────────────────── */
+.quiz-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.75rem 1rem 3rem;
+  gap: 1.25rem;
+}
+
+/* Progress bar */
+.quiz-progress-bar {
+  width: 100%;
+  max-width: 440px;
+  height: 4px;
+  background: #e0e4ec;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.quiz-progress-bar__fill {
+  height: 100%;
+  background: #2c3e6b;
+  border-radius: 2px;
+  transition: width 0.35s ease;
+  width: 0%;
+}
+
+/* Symbol card */
+.symbol-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 14px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 440px;
+  min-height: 220px;
+  justify-content: center;
+}
+
+.symbol-card img {
+  max-width: 200px;
+  max-height: 160px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Image placeholder (when image file is missing) */
+.symbol-placeholder {
+  width: 180px;
+  height: 130px;
+  background: #f0f4fa;
+  border: 2px dashed #b6c3dc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #8098bc;
+  text-align: center;
+  padding: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* Meaning revealed after answering */
+.symbol-meaning {
+  display: none;
+  font-size: 0.9rem;
+  color: #2a3d5c;
+  text-align: center;
+  line-height: 1.65;
+  padding: 0.75rem 1rem;
+  background: #eef3ff;
+  border-radius: 8px;
+  border-left: 3px solid #2c3e6b;
+  width: 100%;
+}
+.symbol-meaning.visible { display: block; }
+
+/* Question prompt */
+.question-prompt {
+  font-size: 0.82rem;
+  color: #999;
+  text-align: center;
+  font-style: italic;
+  margin-top: -0.25rem;
+}
+
+/* ── Answer options ─────────────────────────────────────────────── */
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 440px;
+}
+
+.option-btn {
+  padding: 0.85rem 0.9rem;
+  background: #fff;
+  border: 2px solid #dde3ee;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #1a1a1a;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.4;
+  font-family: inherit;
+  transition: border-color 0.12s, background 0.12s;
+  word-break: break-word;
+}
+
+.option-btn:hover:not(:disabled) {
+  border-color: #2c3e6b;
+  background: #f0f4ff;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-btn.correct {
+  background: #e6f7ee;
+  border-color: #1e7e45;
+  color: #145530;
+  font-weight: 600;
+}
+
+.option-btn.wrong {
+  background: #fdecea;
+  border-color: #b32a1e;
+  color: #7a1a1a;
+}
+
+/* ── Next button ────────────────────────────────────────────────── */
+.btn-next {
+  padding: 0.85rem 2.5rem;
+  background: #2c3e6b;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.18s;
+  display: none;
+}
+.btn-next.visible { display: block; }
+.btn-next:hover   { background: #1e2c50; }
+
+/* ================================================================
+   Results screen
+   ================================================================ */
+
+.results-screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 1.5rem;
+}
+.results-screen.visible { display: flex; }
+
+.results-emoji { font-size: 4rem; line-height: 1; }
+
+.results-screen h2 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #2c3e6b;
+}
+
+.results-stats {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1.1rem 1.5rem;
+  min-width: 95px;
+  text-align: center;
+}
+
+.stat-box .stat-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-box .stat-label {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-box.correct .stat-value { color: #1e7e45; }
+.stat-box.wrong   .stat-value { color: #b32a1e; }
+
+.results-best {
+  font-size: 0.875rem;
+  color: #aaa;
+}
+
+.btn-replay {
+  padding: 0.85rem 2.5rem;
+  background: #2c3e6b;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.18s;
+}
+.btn-replay:hover { background: #1e2c50; }
+
+.btn-home {
+  padding: 0.65rem 1.75rem;
+  background: transparent;
+  color: #2c3e6b;
+  border: 2px solid #2c3e6b;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  font-family: inherit;
+  transition: background 0.18s, color 0.18s;
+}
+.btn-home:hover {
+  background: #2c3e6b;
+  color: #fff;
+}
+
+/* ── Error banner ───────────────────────────────────────────────── */
+.error-banner {
+  background: #fdecea;
+  border: 1px solid #b32a1e;
+  color: #7a1a1a;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  max-width: 440px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ── Mute button ────────────────────────────────────────────────── */
+.btn-mute {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #dde3ee;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: box-shadow 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+.btn-mute:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .site-header h1 { font-size: 1.6rem; }
+
+  .options-grid { grid-template-columns: 1fr; }
+
+  .quiz-topbar__title { font-size: 0.85rem; }
+
+  .results-stats { gap: 0.75rem; }
+
+  .stat-box {
+    padding: 0.85rem 1rem;
+    min-width: 80px;
+  }
+}
