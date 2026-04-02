@@ -33,6 +33,15 @@
       </div>
     </a>
 
+    <a class="game-card" href="games/read-the-note.html">
+      <div class="game-card__icon">🎹</div>
+      <div class="game-card__body">
+        <h2>Read the Note</h2>
+        <p>A note appears on the grand staff — treble or bass. Name it: A through G.</p>
+        <div class="game-card__meta" id="meta-read-note"></div>
+      </div>
+    </a>
+
     <!-- Add more game cards here as new games are created -->
 
   </main>
@@ -58,6 +67,14 @@
         badge2.className = 'best-badge';
         badge2.textContent = 'Best: ' + best2 + ' correct';
         metaEl2.appendChild(badge2);
+      }
+      const best3 = localStorage.getItem('harp_read_note_best');
+      if (best3 !== null) {
+        const metaEl3 = document.getElementById('meta-read-note');
+        const badge3 = document.createElement('span');
+        badge3.className = 'best-badge';
+        badge3.textContent = 'Best: ' + best3 + ' correct';
+        metaEl3.appendChild(badge3);
       }
     })();
   </script>

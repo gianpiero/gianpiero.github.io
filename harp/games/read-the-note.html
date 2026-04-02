@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Read the Note — Harp Learning</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* Staff card */
+    .staff-card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 14px;
+      padding: 1.25rem 1rem 1rem;
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .staff-card svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      overflow: visible;
+    }
+
+    /* Note name label shown after answering */
+    .note-reveal {
+      display: none;
+      font-size: 0.9rem;
+      color: #2a3d5c;
+      text-align: center;
+      padding: 0.65rem 1rem;
+      background: #eef3ff;
+      border-radius: 8px;
+      border-left: 3px solid #2c3e6b;
+      width: 100%;
+      line-height: 1.6;
+    }
+    .note-reveal.visible { display: block; }
+
+    /* 7-button answer grid */
+    .note-options-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .note-btn {
+      padding: 0.8rem 0.25rem;
+      background: #fff;
+      border: 2px solid #dde3ee;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      cursor: pointer;
+      text-align: center;
+      font-family: inherit;
+      transition: border-color 0.12s, background 0.12s;
+    }
+
+    .note-btn:hover:not(:disabled) {
+      border-color: #2c3e6b;
+      background: #f0f4ff;
+    }
+
+    .note-btn:disabled { cursor: default; }
+
+    .note-btn.correct {
+      background: #e6f7ee;
+      border-color: #1e7e45;
+      color: #145530;
+    }
+
+    .note-btn.wrong {
+      background: #fdecea;
+      border-color: #b32a1e;
+      color: #7a1a1a;
+    }
+
+    @media (max-width: 420px) {
+      .note-options-grid { grid-template-columns: repeat(7, 1fr); gap: 0.3rem; }
+      .note-btn { font-size: 1rem; padding: 0.7rem 0.1rem; }
+    }
+
+    /* ── Show-all overlay ───────────────────────────────────────── */
+    .showall-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 300;
+      overflow-y: auto;
+      padding: 2rem 1rem 3rem;
+    }
+    .showall-overlay.visible { display: block; }
+
+    .showall-panel {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 1.75rem 1.5rem 2rem;
+    }
+
+    .showall-panel h2 {
+      font-size: 1.2rem;
+      color: #2c3e6b;
+      margin-bottom: 1.25rem;
+      font-weight: 700;
+    }
+
+    .showall-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #555;
+      line-height: 1;
+      margin-top: -0.2rem;
+    }
+    .showall-close:hover { color: #000; }
+
+    .showall-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 0.85rem;
+    }
+
+    .showall-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border: 1px solid #e8eaf0;
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      background: #fafafa;
+    }
+
+    .showall-item svg {
+      flex-shrink: 0;
+      width: 150px;
+      height: auto;
+    }
+
+    .showall-item .note-label {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #2c3e6b;
+      line-height: 1;
+    }
+
+    .showall-item .note-sublabel {
+      font-size: 0.7rem;
+      color: #888;
+      margin-top: 0.2rem;
+      line-height: 1.4;
+    }
+
+    .btn-showall {
+      background: none;
+      border: none;
+      color: #2c3e6b;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+      font-family: inherit;
+      padding: 0;
+    }
+    .btn-showall:hover { color: #1e2c50; }
+  </style>
+</head>
+<body class="quiz-page">
+
+  <!-- ── Quiz header ───────────────────────────────────────────── -->
+  <div id="quiz-header">
+    <header class="quiz-topbar">
+      <a href="../harp.html" class="quiz-topbar__back">← Back</a>
+      <span class="quiz-topbar__title">Read the Note</span>
+      <span class="quiz-topbar__progress" id="progress"></span>
+      <button class="btn-mute" id="btn-mute" onclick="toggleMute()" title="Toggle sound">🔇</button>
+    </header>
+    <div class="quiz-scorebar">
+      <span class="score-correct">✓ <span id="score-correct">0</span> correct</span>
+      <span class="score-wrong">✗ <span id="score-wrong">0</span> wrong</span>
+    </div>
+  </div>
+
+  <!-- ── Quiz main ─────────────────────────────────────────────── -->
+  <main class="quiz-main" id="quiz-area">
+    <div class="quiz-progress-bar">
+      <div class="quiz-progress-bar__fill" id="progress-bar"></div>
+    </div>
+
+    <div class="staff-card">
+      <svg id="staff-svg" viewBox="0 0 340 220" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="note-reveal" id="note-reveal"></div>
+    </div>
+
+    <p class="question-prompt">Which note is this?</p>
+
+    <div class="note-options-grid" id="options-grid"></div>
+
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">Next →</button>
+
+    <button class="btn-showall" onclick="openShowAll()">Show all notes →</button>
+  </main>
+
+  <!-- ── Show-all overlay ──────────────────────────────────────── -->
+  <div class="showall-overlay" id="showall-overlay" onclick="closeShowAllOutside(event)">
+    <div class="showall-panel" id="showall-panel">
+      <button class="showall-close" onclick="closeShowAll()">✕</button>
+      <h2>All Notes — Reference</h2>
+      <div class="showall-grid" id="showall-grid"></div>
+    </div>
+  </div>
+
+  <!-- ── Confetti canvas ───────────────────────────────────────── -->
+  <canvas id="confetti-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:200;display:none;"></canvas>
+
+  <!-- ── Results screen ────────────────────────────────────────── -->
+  <div class="results-screen" id="results-screen">
+    <div class="results-emoji" id="results-emoji">🎉</div>
+    <h2 id="results-title">Quiz Complete!</h2>
+    <div class="results-stats">
+      <div class="stat-box correct">
+        <div class="stat-value" id="result-correct">0</div>
+        <div class="stat-label">Correct</div>
+      </div>
+      <div class="stat-box wrong">
+        <div class="stat-value" id="result-wrong">0</div>
+        <div class="stat-label">Wrong</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="result-pct">0%</div>
+        <div class="stat-label">Score</div>
+      </div>
+    </div>
+    <p class="results-best" id="results-best"></p>
+    <button class="btn-replay" onclick="startQuiz()">Play Again</button>
+    <a href="../harp.html" class="btn-home">← All Games</a>
+  </div>
+
+  <script>
+    'use strict';
+
+    /* ================================================================
+       GRAND STAFF LAYOUT  (SVG viewBox 0 0 340 220)
+       ----------------------------------------------------------------
+       Staff line spacing = 8px
+       Treble staff: 5 lines, top line Y=30, spacing=8  → lines at 30,38,46,54,62
+       Bass staff:   5 lines, top line Y=130, spacing=8  → lines at 130,138,146,154,162
+       Middle C ledger line sits between the staves at Y=96
+
+       NOTE POSITIONS
+       Each note occupies a "slot": 0 = top treble line (E5), going UP
+       increases slot (higher note = smaller Y).
+       We define each quiz note by:
+         name   : display name ("A", "B" … "G")
+         octave : which octave (4 = middle, 5 = one above, 3 = one below)
+         label  : full readable name shown after answer
+         staff  : 'treble' | 'bass'
+         slotY  : exact Y coordinate of note centre in SVG units
+
+       Treble staff slots (line/space Y values, bottom to top):
+         D4  middle-C ledger space   Y=100
+         C4  middle-C ledger line    Y=96  ← ledger needed
+         B3  just below middle-C     Y=92  ← needs lower ledger (on bass)
+         — treble clef range (no ledger) —
+         D4  space below staff       Y=68
+         E4  1st line                Y=62
+         F4  1st space               Y=58
+         G4  2nd line                Y=54
+         A4  2nd space               Y=50
+         B4  3rd line (middle)       Y=46
+         C5  3rd space               Y=42
+         D5  4th line                Y=38
+         E5  4th space               Y=34
+         F5  5th line                Y=30
+         G5  above 5th line space    Y=26
+
+       Bass staff slots:
+         G2  below 1st line space    Y=166
+         A2  1st line                Y=162
+         B2  1st space               Y=158
+         C3  2nd line                Y=154
+         D3  2nd space               Y=150
+         E3  3rd line (middle)       Y=146
+         F3  3rd space               Y=142
+         G3  4th line                Y=138
+         A3  4th space               Y=134
+         B3  5th line                Y=130
+         C4  above 5th space         Y=126  ← 1 ledger above bass staff
+    ================================================================ */
+
+    const STORAGE_KEY = 'harp_read_note_best';
+
+    /* ── All quiz notes ──────────────────────────────────────────── */
+    // slotY = Y centre of note head in SVG viewBox coords
+    // ledgerY = array of Y positions for ledger lines needed (empty if none)
+    const ALL_NOTES = [
+      // Treble clef — above staff
+      { name:'A', octave:5, label:'A5 — first ledger line above treble', staff:'treble', slotY:22, ledgers:[22] },
+      { name:'G', octave:5, label:'G5 — space above top line (treble)',  staff:'treble', slotY:26, ledgers:[] },
+      // Treble clef notes (lines bottom→top: E4 G4 B4 D5 F5 / spaces: F4 A4 C5 E5)
+      { name:'D', octave:4, label:'D4 — space below first line (treble)', staff:'treble', slotY:66, ledgers:[] },
+      { name:'C', octave:4, label:'C4 — Middle C (ledger line below treble)', staff:'treble', slotY:70,  ledgers:[70] },
+      { name:'E', octave:4, label:'E4 — first line (treble)',    staff:'treble', slotY:62,  ledgers:[] },
+      { name:'F', octave:4, label:'F4 — first space (treble)',   staff:'treble', slotY:58,  ledgers:[] },
+      { name:'G', octave:4, label:'G4 — second line (treble)',   staff:'treble', slotY:54,  ledgers:[] },
+      { name:'A', octave:4, label:'A4 — second space (treble)',  staff:'treble', slotY:50,  ledgers:[] },
+      { name:'B', octave:4, label:'B4 — middle line (treble)',   staff:'treble', slotY:46,  ledgers:[] },
+      { name:'C', octave:5, label:'C5 — third space (treble)',   staff:'treble', slotY:42,  ledgers:[] },
+      { name:'D', octave:5, label:'D5 — fourth line (treble)',   staff:'treble', slotY:38,  ledgers:[] },
+      { name:'E', octave:5, label:'E5 — fourth space (treble)',  staff:'treble', slotY:34,  ledgers:[] },
+      { name:'F', octave:5, label:'F5 — top line (treble)',      staff:'treble', slotY:30,  ledgers:[] },
+      // Bass clef notes (lines bottom→top: G2 B2 D3 F3 A3 / spaces: A2 C3 E3 G3)
+      { name:'B', octave:3, label:'B3 — above top line (bass)',  staff:'bass',   slotY:126, ledgers:[] },
+      { name:'A', octave:3, label:'A3 — top line (bass)',        staff:'bass',   slotY:130, ledgers:[] },
+      { name:'G', octave:3, label:'G3 — fourth space (bass)',    staff:'bass',   slotY:134, ledgers:[] },
+      { name:'F', octave:3, label:'F3 — fourth line (bass)',     staff:'bass',   slotY:138, ledgers:[] },
+      { name:'E', octave:3, label:'E3 — third space (bass)',     staff:'bass',   slotY:142, ledgers:[] },
+      { name:'D', octave:3, label:'D3 — middle line (bass)',     staff:'bass',   slotY:146, ledgers:[] },
+      { name:'C', octave:3, label:'C3 — second space (bass)',    staff:'bass',   slotY:150, ledgers:[] },
+      { name:'B', octave:2, label:'B2 — second line (bass)',     staff:'bass',   slotY:154, ledgers:[] },
+      { name:'A', octave:2, label:'A2 — first space (bass)',     staff:'bass',   slotY:158, ledgers:[] },
+      { name:'G', octave:2, label:'G2 — bottom line (bass)',     staff:'bass',   slotY:162, ledgers:[] },
+      // Bass clef — below staff
+      { name:'F', octave:2, label:'F2 — space below bottom line (bass)', staff:'bass', slotY:166, ledgers:[] },
+      { name:'E', octave:2, label:'E2 — first ledger line below bass',   staff:'bass', slotY:170, ledgers:[170] },
+    ];
+
+    const NOTE_NAMES = ['A','B','C','D','E','F','G'];
+
+    /* ── State ───────────────────────────────────────────────────── */
+    const state = {
+      questions: [],
+      current:   0,
+      correct:   0,
+      wrong:     0,
+      answered:  false
+    };
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function buildQuestions() {
+      return shuffle(ALL_NOTES);
+    }
+
+    const el = id => document.getElementById(id);
+
+    /* ── Sound effects ───────────────────────────────────────────── */
+
+    let isMuted = true;
+    let _audioCtx = null;
+
+    function audioCtx() {
+      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return _audioCtx;
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      el('btn-mute').textContent = isMuted ? '🔇' : '🔊';
+    }
+
+    function playCorrect() {
+      if (isMuted) return;
+      try {
+        const ctx    = audioCtx();
+        const now    = ctx.currentTime;
+        const bufLen = ctx.sampleRate * 0.12;
+        const buffer = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+        const data   = buffer.getChannelData(0);
+        for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.55, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        const hpf = ctx.createBiquadFilter();
+        hpf.type = 'highpass';
+        hpf.frequency.value = 1800;
+        source.connect(hpf);
+        hpf.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(now);
+        source.stop(now + 0.13);
+      } catch (e) {}
+    }
+
+    function playWrong() {
+      if (isMuted) return;
+      try {
+        const ctx  = audioCtx();
+        const now  = ctx.currentTime;
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } catch (e) {}
+    }
+
+    function playFinish() {
+      if (isMuted) return;
+      try {
+        const ctx   = audioCtx();
+        const now   = ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, i) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const t    = now + i * 0.13;
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.4, t + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.6);
+        });
+      } catch (e) {}
+    }
+
+    /* ── Confetti ────────────────────────────────────────────────── */
+
+    let _confettiRaf = null;
+
+    function launchConfetti() {
+      const canvas = el('confetti-canvas');
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvas.style.display = 'block';
+      const ctx    = canvas.getContext('2d');
+      const colors = ['#f94144','#f3722c','#f9c74f','#90be6d','#43aa8b','#577590','#a78bfa','#f472b6'];
+      const pieces = Array.from({ length: 120 }, () => ({
+        x:    Math.random() * canvas.width,
+        y:    Math.random() * -canvas.height,
+        r:    Math.random() * 6 + 4,
+        d:    Math.random() * 80 + 20,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        tiltAngle: 0,
+        tiltSpeed: Math.random() * 0.1 + 0.05
+      }));
+      let angle = 0, elapsed = 0, last = null;
+      function draw(ts) {
+        if (!last) last = ts;
+        elapsed += ts - last; last = ts;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        angle += 0.01;
+        pieces.forEach(p => {
+          p.tiltAngle += p.tiltSpeed;
+          p.y += (Math.cos(angle + p.d) + 2.5) * 1.5;
+          p.x += Math.sin(angle) * 1.2;
+          const tilt = Math.sin(p.tiltAngle) * 15;
+          ctx.beginPath();
+          ctx.lineWidth = p.r;
+          ctx.strokeStyle = p.color;
+          ctx.moveTo(p.x + tilt + p.r / 2, p.y);
+          ctx.lineTo(p.x + tilt, p.y + tilt + p.r / 2);
+          ctx.stroke();
+        });
+        if (elapsed < 3500) { _confettiRaf = requestAnimationFrame(draw); }
+        else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; }
+      }
+      if (_confettiRaf) cancelAnimationFrame(_confettiRaf);
+      _confettiRaf = requestAnimationFrame(draw);
+    }
+
+    /* ================================================================
+       SVG STAFF DRAWING
+    ================================================================ */
+
+    function svgEl(tag, attrs) {
+      const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+      return e;
+    }
+
+    const SVG_W = 340;
+    // Staff geometry constants
+    const STAFF_X1       = 38;   // left edge of staff lines
+    const STAFF_X2       = 310;  // right edge
+    const TREBLE_TOP     = 30;   // Y of top treble staff line
+    const BASS_TOP       = 130;  // Y of top bass staff line
+    const LINE_GAP       = 8;    // distance between adjacent staff lines
+    const NOTE_X         = 190;  // X centre of note head
+    const NOTE_RX        = 7;    // note head x-radius
+    const NOTE_RY        = 5;    // note head y-radius
+    const STEM_LEN       = 28;   // stem length
+    const LEDGER_HALF    = 12;   // half-width of ledger line
+    const LINE_COLOR     = '#222';
+    const NOTE_COLOR     = '#1a1a1a';
+    const CLEF_COLOR     = '#1a1a1a';
+
+    function drawStaff(svg, note) {
+      // Clear
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const S = (tag, a) => svg.appendChild(svgEl(tag, a));
+
+      // ── Brace ────────────────────────────────────────────────────
+      // Simple vertical bracket on the left
+      const brace = S('path', {
+        d: `M ${STAFF_X1 - 8} ${TREBLE_TOP} Q ${STAFF_X1 - 18} ${(TREBLE_TOP + BASS_TOP + 4*LINE_GAP)/2} ${STAFF_X1 - 8} ${BASS_TOP + 4*LINE_GAP}`,
+        stroke: LINE_COLOR, 'stroke-width': '2.5', fill: 'none'
+      });
+
+      // Left barline connecting both staves
+      S('line', { x1: STAFF_X1, y1: TREBLE_TOP, x2: STAFF_X1, y2: BASS_TOP + 4*LINE_GAP,
+                  stroke: LINE_COLOR, 'stroke-width': '1.5' });
+
+      // ── Treble staff lines ────────────────────────────────────────
+      for (let i = 0; i < 5; i++) {
+        const y = TREBLE_TOP + i * LINE_GAP;
+        S('line', { x1: STAFF_X1, y1: y, x2: STAFF_X2, y2: y,
+                    stroke: LINE_COLOR, 'stroke-width': '1.2' });
+      }
+
+      // ── Bass staff lines ──────────────────────────────────────────
+      for (let i = 0; i < 5; i++) {
+        const y = BASS_TOP + i * LINE_GAP;
+        S('line', { x1: STAFF_X1, y1: y, x2: STAFF_X2, y2: y,
+                    stroke: LINE_COLOR, 'stroke-width': '1.2' });
+      }
+
+      // ── Treble clef (stylised text glyph) ────────────────────────
+      S('text', {
+        x: STAFF_X1 + 4, y: TREBLE_TOP + 42,
+        'font-family': 'Georgia, serif', 'font-size': '58',
+        fill: CLEF_COLOR, 'text-anchor': 'start',
+        style: 'user-select:none'
+      }).textContent = '𝄞';
+
+      // ── Bass clef (text glyph) ────────────────────────────────────
+      S('text', {
+        x: STAFF_X1 + 5, y: BASS_TOP + 24,
+        'font-family': 'Georgia, serif', 'font-size': '30',
+        fill: CLEF_COLOR, 'text-anchor': 'start',
+        style: 'user-select:none'
+      }).textContent = '𝄢';
+
+      // ── Ledger lines (if any) ─────────────────────────────────────
+      for (const ly of note.ledgers) {
+        S('line', {
+          x1: NOTE_X - LEDGER_HALF, y1: ly,
+          x2: NOTE_X + LEDGER_HALF, y2: ly,
+          stroke: LINE_COLOR, 'stroke-width': '1.5'
+        });
+      }
+
+      // ── Note head ────────────────────────────────────────────────
+      const ny = note.slotY;
+      S('ellipse', {
+        cx: NOTE_X, cy: ny, rx: NOTE_RX, ry: NOTE_RY,
+        fill: NOTE_COLOR,
+        transform: `rotate(-15, ${NOTE_X}, ${ny})`
+      });
+
+      // ── Stem ─────────────────────────────────────────────────────
+      // Stem goes up if note is below the middle line of its staff, down otherwise
+      const midTreble = TREBLE_TOP + 2 * LINE_GAP; // B4
+      const midBass   = BASS_TOP   + 2 * LINE_GAP; // E3
+      const mid = note.staff === 'bass' ? midBass : midTreble;
+      const stemUp = ny >= mid;
+      const stemX  = stemUp ? NOTE_X + NOTE_RX - 1 : NOTE_X - NOTE_RX + 1;
+      const stemY1 = ny;
+      const stemY2 = stemUp ? ny - STEM_LEN : ny + STEM_LEN;
+      S('line', {
+        x1: stemX, y1: stemY1, x2: stemX, y2: stemY2,
+        stroke: NOTE_COLOR, 'stroke-width': '1.4'
+      });
+    }
+
+    /* ── Quiz flow ───────────────────────────────────────────────── */
+
+    function startQuiz() {
+      Object.assign(state, {
+        questions: buildQuestions(),
+        current:   0,
+        correct:   0,
+        wrong:     0,
+        answered:  false
+      });
+
+      el('results-screen').classList.remove('visible');
+      el('quiz-header').style.display = '';
+      el('quiz-area').style.display   = 'flex';
+      updateScoreBar();
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      state.answered = false;
+
+      const note  = state.questions[state.current];
+      const total = state.questions.length;
+
+      el('progress').textContent     = `${state.current + 1} / ${total}`;
+      el('progress-bar').style.width = `${(state.current / total) * 100}%`;
+
+      // Draw staff with note
+      drawStaff(el('staff-svg'), note);
+
+      // Hide reveal
+      const reveal = el('note-reveal');
+      reveal.textContent = '';
+      reveal.classList.remove('visible');
+
+      // Build A–G buttons
+      const grid = el('options-grid');
+      grid.innerHTML = '';
+      NOTE_NAMES.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className   = 'note-btn';
+        btn.textContent = name;
+        btn.addEventListener('click', () => handleAnswer(name));
+        grid.appendChild(btn);
+      });
+
+      el('btn-next').classList.remove('visible');
+    }
+
+    function handleAnswer(selected) {
+      if (state.answered) return;
+      state.answered = true;
+
+      const note      = state.questions[state.current];
+      const isCorrect = selected === note.name;
+
+      if (isCorrect) state.correct++;
+      else           state.wrong++;
+
+      // Highlight buttons
+      el('options-grid').querySelectorAll('.note-btn').forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent === note.name) {
+          btn.classList.add('correct');
+        } else if (btn.textContent === selected && !isCorrect) {
+          btn.classList.add('wrong');
+        }
+      });
+
+      // Reveal full note name
+      const reveal = el('note-reveal');
+      reveal.textContent = note.label;
+      reveal.classList.add('visible');
+
+      if (isCorrect) playCorrect();
+      else           playWrong();
+
+      updateScoreBar();
+      el('btn-next').classList.add('visible');
+    }
+
+    function nextQuestion() {
+      state.current++;
+      if (state.current >= state.questions.length) {
+        showResults();
+      } else {
+        renderQuestion();
+      }
+    }
+
+    function updateScoreBar() {
+      el('score-correct').textContent = state.correct;
+      el('score-wrong').textContent   = state.wrong;
+    }
+
+    function showResults() {
+      const total = state.questions.length;
+      const pct   = Math.round((state.correct / total) * 100);
+
+      el('quiz-header').style.display = 'none';
+      el('quiz-area').style.display   = 'none';
+      el('results-screen').classList.add('visible');
+
+      el('result-correct').textContent = state.correct;
+      el('result-wrong').textContent   = state.wrong;
+      el('result-pct').textContent     = `${pct}%`;
+
+      const emoji = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 50 ? '💪' : '😔';
+      el('results-emoji').textContent = emoji;
+
+      const titleMap = [[100, 'Perfect Score!'], [80, 'Great Work!'], [60, 'Getting There!'], [40, 'Keep Practising!']];
+      const match = titleMap.find(([t]) => pct >= t);
+      el('results-title').textContent = match ? match[1] : 'Keep Going!';
+
+      const prev = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (state.correct > prev) localStorage.setItem(STORAGE_KEY, String(state.correct));
+      const best = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+      el('results-best').textContent = `Best: ${best} / ${total} correct`;
+
+      launchConfetti();
+      playFinish();
+    }
+
+    /* ── Show-all reference ─────────────────────────────────────── */
+
+    function openShowAll() {
+      const grid = el('showall-grid');
+      if (!grid.hasChildNodes()) {
+        // Sort by pitch: treble high→low, then bass high→low (ascending slotY)
+        const sorted = ALL_NOTES.slice().sort((a, b) => a.slotY - b.slotY);
+        sorted.forEach(note => {
+          const item = document.createElement('div');
+          item.className = 'showall-item';
+
+          // Mini staff SVG (reuse drawStaff)
+          const svgNS = 'http://www.w3.org/2000/svg';
+          const svg = document.createElementNS(svgNS, 'svg');
+          svg.setAttribute('viewBox', '0 0 340 220');
+          svg.setAttribute('xmlns', svgNS);
+          drawStaff(svg, note);
+          // Highlight note head + stem in accent colour
+          svg.querySelectorAll('ellipse').forEach(e => e.setAttribute('fill', '#2c3e6b'));
+          const lines = svg.querySelectorAll('line');
+          if (lines.length) lines[lines.length - 1].setAttribute('stroke', '#2c3e6b');
+
+          // Label
+          const labelWrap = document.createElement('div');
+          const nameLine = document.createElement('div');
+          nameLine.className = 'note-label';
+          nameLine.textContent = note.name + note.octave;
+          const subLine = document.createElement('div');
+          subLine.className = 'note-sublabel';
+          // Strip leading "X4 — " prefix from label
+          subLine.textContent = note.label.replace(/^[A-G]\d+ — /, '');
+          labelWrap.appendChild(nameLine);
+          labelWrap.appendChild(subLine);
+
+          item.appendChild(svg);
+          item.appendChild(labelWrap);
+          grid.appendChild(item);
+        });
+      }
+      el('showall-overlay').classList.add('visible');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeShowAll() {
+      el('showall-overlay').classList.remove('visible');
+      document.body.style.overflow = '';
+    }
+
+    function closeShowAllOutside(e) {
+      if (e.target === el('showall-overlay')) closeShowAll();
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeShowAll(); });
+
+    document.addEventListener('DOMContentLoaded', startQuiz);
+  </script>
+</body>
+</html>
