@@ -176,12 +176,101 @@
       padding: 0;
     }
     .btn-showall:hover { color: #1e2c50; }
+
+    .clef-select-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .clef-select-panel {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 14px;
+      padding: 1.5rem;
+    }
+
+    .clef-select-panel h1 {
+      margin: 0 0 0.5rem;
+      color: #2c3e6b;
+      font-size: 1.5rem;
+    }
+
+    .clef-select-panel p { margin: 0 0 1.25rem; color: #555; }
+
+    .clef-choice-list {
+      display: grid;
+      gap: 0.55rem;
+      margin: 0 0 1.25rem;
+      padding: 0;
+      border: 0;
+    }
+
+    .clef-choice-list label {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.75rem;
+      border: 1px solid #dde3ee;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .clef-choice-text { flex: 1; }
+
+    .clef-choice-symbols {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.15rem;
+      color: #2c3e6b;
+      font-family: "Noto Music", "Bravura", Georgia, serif;
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+
+    .clef-choice-list label:has(input:checked) {
+      border-color: #2c3e6b;
+      background: #f0f4ff;
+    }
+
+    .clef-choice-list input { accent-color: #2c3e6b; }
+
+    .btn-start {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 0;
+      border-radius: 8px;
+      background: #2c3e6b;
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-start:hover { background: #1e2c50; }
   </style>
 </head>
 <body class="quiz-page">
 
+  <section class="clef-select-screen" id="clef-select-screen">
+    <div class="clef-select-panel">
+      <h1>Read the Note</h1>
+      <p>Choose which clefs to practice.</p>
+      <fieldset class="clef-choice-list">
+        <legend class="sr-only">Choose clefs</legend>
+        <label><input type="radio" name="staff-choice" value="both" checked><span class="clef-choice-text">Both clefs</span><span class="clef-choice-symbols" aria-hidden="true">𝄞 𝄢</span></label>
+        <label><input type="radio" name="staff-choice" value="treble"><span class="clef-choice-text">Treble clef</span><span class="clef-choice-symbols" aria-hidden="true">𝄞</span></label>
+        <label><input type="radio" name="staff-choice" value="bass"><span class="clef-choice-text">Bass clef</span><span class="clef-choice-symbols" aria-hidden="true">𝄢</span></label>
+      </fieldset>
+      <button class="btn-start" onclick="startQuiz()">Start Quiz</button>
+    </div>
+  </section>
+
   <!-- ── Quiz header ───────────────────────────────────────────── -->
-  <div id="quiz-header">
+  <div id="quiz-header" style="display:none">
     <header class="quiz-topbar">
       <a href="../harp.html" class="quiz-topbar__back">← Back</a>
       <span class="quiz-topbar__title">Read the Note</span>
@@ -195,7 +284,7 @@
   </div>
 
   <!-- ── Quiz main ─────────────────────────────────────────────── -->
-  <main class="quiz-main" id="quiz-area">
+  <main class="quiz-main" id="quiz-area" style="display:none">
     <div class="quiz-progress-bar">
       <div class="quiz-progress-bar__fill" id="progress-bar"></div>
     </div>
@@ -246,6 +335,7 @@
     </div>
     <p class="results-best" id="results-best"></p>
     <button class="btn-replay" onclick="startQuiz()">Play Again</button>
+    <button class="btn-home" onclick="chooseClefs()">Change Clefs</button>
     <a href="../harp.html" class="btn-home">← All Games</a>
   </div>
 
@@ -346,6 +436,7 @@
       current:   0,
       correct:   0,
       wrong:     0,
+      staff:     'both',
       answered:  false
     };
 
@@ -358,8 +449,9 @@
       return a;
     }
 
-    function buildQuestions() {
-      return shuffle(ALL_NOTES);
+    function buildQuestions(staff) {
+      const notes = staff === 'both' ? ALL_NOTES : ALL_NOTES.filter(note => note.staff === staff);
+      return shuffle(notes);
     }
 
     const el = id => document.getElementById(id);
@@ -517,52 +609,62 @@
     const NOTE_COLOR     = '#1a1a1a';
     const CLEF_COLOR     = '#1a1a1a';
 
-    function drawStaff(svg, note) {
+    function drawStaff(svg, note, staff = 'both') {
       // Clear
       while (svg.firstChild) svg.removeChild(svg.firstChild);
 
+      const showTreble = staff !== 'bass';
+      const showBass = staff !== 'treble';
+      svg.setAttribute('viewBox', staff === 'treble' ? '0 10 340 80' : staff === 'bass' ? '0 110 340 70' : '0 0 340 220');
+
       const S = (tag, a) => svg.appendChild(svgEl(tag, a));
 
-      // ── Brace ────────────────────────────────────────────────────
-      // Simple vertical bracket on the left
-      const brace = S('path', {
-        d: `M ${STAFF_X1 - 8} ${TREBLE_TOP} Q ${STAFF_X1 - 18} ${(TREBLE_TOP + BASS_TOP + 4*LINE_GAP)/2} ${STAFF_X1 - 8} ${BASS_TOP + 4*LINE_GAP}`,
-        stroke: LINE_COLOR, 'stroke-width': '2.5', fill: 'none'
-      });
-
-      // Left barline connecting both staves
-      S('line', { x1: STAFF_X1, y1: TREBLE_TOP, x2: STAFF_X1, y2: BASS_TOP + 4*LINE_GAP,
-                  stroke: LINE_COLOR, 'stroke-width': '1.5' });
+      if (staff === 'both') {
+        S('path', {
+          d: `M ${STAFF_X1 - 8} ${TREBLE_TOP} Q ${STAFF_X1 - 18} ${(TREBLE_TOP + BASS_TOP + 4*LINE_GAP)/2} ${STAFF_X1 - 8} ${BASS_TOP + 4*LINE_GAP}`,
+          stroke: LINE_COLOR, 'stroke-width': '2.5', fill: 'none'
+        });
+        S('line', { x1: STAFF_X1, y1: TREBLE_TOP, x2: STAFF_X1, y2: BASS_TOP + 4*LINE_GAP,
+                    stroke: LINE_COLOR, 'stroke-width': '1.5' });
+      }
 
       // ── Treble staff lines ────────────────────────────────────────
-      for (let i = 0; i < 5; i++) {
-        const y = TREBLE_TOP + i * LINE_GAP;
-        S('line', { x1: STAFF_X1, y1: y, x2: STAFF_X2, y2: y,
-                    stroke: LINE_COLOR, 'stroke-width': '1.2' });
+      if (showTreble) {
+        for (let i = 0; i < 5; i++) {
+          const y = TREBLE_TOP + i * LINE_GAP;
+          S('line', { x1: STAFF_X1, y1: y, x2: STAFF_X2, y2: y,
+                      stroke: LINE_COLOR, 'stroke-width': '1.2' });
+        }
       }
 
       // ── Bass staff lines ──────────────────────────────────────────
-      for (let i = 0; i < 5; i++) {
-        const y = BASS_TOP + i * LINE_GAP;
-        S('line', { x1: STAFF_X1, y1: y, x2: STAFF_X2, y2: y,
-                    stroke: LINE_COLOR, 'stroke-width': '1.2' });
+      if (showBass) {
+        for (let i = 0; i < 5; i++) {
+          const y = BASS_TOP + i * LINE_GAP;
+          S('line', { x1: STAFF_X1, y1: y, x2: STAFF_X2, y2: y,
+                      stroke: LINE_COLOR, 'stroke-width': '1.2' });
+        }
       }
 
       // ── Treble clef (stylised text glyph) ────────────────────────
-      S('text', {
-        x: STAFF_X1 + 4, y: TREBLE_TOP + 42,
-        'font-family': 'Georgia, serif', 'font-size': '58',
-        fill: CLEF_COLOR, 'text-anchor': 'start',
-        style: 'user-select:none'
-      }).textContent = '𝄞';
+      if (showTreble) {
+        S('text', {
+          x: STAFF_X1 + 4, y: TREBLE_TOP + 42,
+          'font-family': 'Georgia, serif', 'font-size': '58',
+          fill: CLEF_COLOR, 'text-anchor': 'start',
+          style: 'user-select:none'
+        }).textContent = '𝄞';
+      }
 
       // ── Bass clef (text glyph) ────────────────────────────────────
-      S('text', {
-        x: STAFF_X1 + 5, y: BASS_TOP + 24,
-        'font-family': 'Georgia, serif', 'font-size': '30',
-        fill: CLEF_COLOR, 'text-anchor': 'start',
-        style: 'user-select:none'
-      }).textContent = '𝄢';
+      if (showBass) {
+        S('text', {
+          x: STAFF_X1 + 5, y: BASS_TOP + 24,
+          'font-family': 'Georgia, serif', 'font-size': '30',
+          fill: CLEF_COLOR, 'text-anchor': 'start',
+          style: 'user-select:none'
+        }).textContent = '𝄢';
+      }
 
       // ── Ledger lines (if any) ─────────────────────────────────────
       for (const ly of note.ledgers) {
@@ -599,14 +701,16 @@
     /* ── Quiz flow ───────────────────────────────────────────────── */
 
     function startQuiz() {
+      state.staff = document.querySelector('input[name="staff-choice"]:checked').value;
       Object.assign(state, {
-        questions: buildQuestions(),
+        questions: buildQuestions(state.staff),
         current:   0,
         correct:   0,
         wrong:     0,
         answered:  false
       });
 
+  el('clef-select-screen').style.display = 'none';
       el('results-screen').classList.remove('visible');
       el('quiz-header').style.display = '';
       el('quiz-area').style.display   = 'flex';
@@ -624,7 +728,7 @@
       el('progress-bar').style.width = `${(state.current / total) * 100}%`;
 
       // Draw staff with note
-      drawStaff(el('staff-svg'), note);
+      drawStaff(el('staff-svg'), note, state.staff);
 
       // Hide reveal
       const reveal = el('note-reveal');
@@ -719,6 +823,11 @@
       playFinish();
     }
 
+    function chooseClefs() {
+      el('results-screen').classList.remove('visible');
+      el('clef-select-screen').style.display = 'flex';
+    }
+
     /* ── Show-all reference ─────────────────────────────────────── */
 
     function openShowAll() {
@@ -773,7 +882,6 @@
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeShowAll(); });
 
-    document.addEventListener('DOMContentLoaded', startQuiz);
   </script>
 </body>
 </html>
